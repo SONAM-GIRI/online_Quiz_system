@@ -11,7 +11,7 @@ class UserService:
             try:
                 cursor = connection.cursor()
 
-                # Check if username already exists
+                # Check if the username already exists
                 cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                 if cursor.fetchone():
                     print("Username already exists. Please choose another username.")
@@ -20,13 +20,14 @@ class UserService:
                 # Hash the password
                 hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
-                # Insert new user
+                # Insert new user into the database
                 cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
                 connection.commit()
                 print("Registration successful!")
                 return True
             except Error as e:
                 print(f"Error during registration: {e}")
+                return False
             finally:
                 cursor.close()
                 connection.close()
@@ -34,28 +35,33 @@ class UserService:
 
     @staticmethod
     def login_user(username: str, password: str) -> bool:
-        """Logs in a user by verifying the username and password."""
+        """Logs in a user by verifying their username and password."""
         connection = DatabaseConfig.get_connection()
         if connection:
             try:
                 cursor = connection.cursor()
 
-                # Fetch user by username
+                # Fetch the user by username
                 cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
                 user = cursor.fetchone()
-                if user:
-                    hashed_password = user[0]
 
-                    # Verify password
-                    if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+                if user:
+                    # The password from the database
+                    stored_password = user[0]
+
+                    # Verify the entered password against the hashed password
+                    if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
                         print("Login successful!")
                         return True
                     else:
                         print("Invalid password.")
+                        return False
                 else:
-                    print("User not found.")
+                    print("Username not found.")
+                    return False
             except Error as e:
                 print(f"Error during login: {e}")
+                return False
             finally:
                 cursor.close()
                 connection.close()
